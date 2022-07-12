@@ -8,22 +8,22 @@ import aiohttp
 import asyncio
 import random
 from datetime import date, datetime, timezone
+from itertools import groupby, chain
+
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
-CURRENCY = ["Chaos Orb", "Exalted Orb", "Divine Orb", "Awakener's Orb","Elevated Sextant","Ancient Orb","Orb of Annulment", "Stacked Deck", "Awakened Sextant"]
+CURRENCY = ["Chaos Orb", "Exalted Orb", "Divine Orb", "Awakener's Orb","Elevated Sextant","Ancient Orb",
+            "Orb of Annulment", "Stacked Deck", "Awakened Sextant", "Mirror of Kalandra"]
 CURRENCY_DICT = {"c": "Chaos Orb", "ex": "Exalted Orb", "woke": "Awakener's Orb", "esex": "Elevated Sextant",
                  "anc": "Ancient Orb", "annul":"Orb of Annulment", "deck": "Stacked Deck", "asex": "Awakened Sextant",
                  "od": "Orb of Dominance", "oc": "Orb of Conflict", "ec": "Eldritch Chaos Orb",
                  "eex": "Eldritch Exalted Orb", "eoa": "Eldritch Orb of Annulment", "do": "Divine Orb",
                  "unmake": "Orb of Unmaking", "fuse": "Orb of Fusing", "tcat": "Tempering Catalyst",
                  "fcat": "Fertile Catalyst", "gcp": "Gemcutter's Prism", "alt": "Orb of Alteration",
-                 "alch": "Orb of Alchemy", "vaal": "Vaal Orb"
-                 }
+                 "alch": "Orb of Alchemy", "vaal": "Vaal Orb", "mirror": "Mirror of Kalandra" }
 
 CURRENCY_STR = ", ".join(CURRENCY_DICT.keys())
-
-
 
 bot = commands.Bot(command_prefix='!')
 
@@ -31,19 +31,6 @@ bot = commands.Bot(command_prefix='!')
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discorcd')
-
-'''
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-
-    if message.content == "woah":
-        response = "Woah"
-        await message.channel.send(response)
-    elif message.content == "raise-exception":
-        raise discord.DiscordException
-'''
 
 
 @bot.command(name="woah", help="woah bro")
@@ -54,16 +41,6 @@ async def woah(ctx, mg=None):
     print(mg)
     response = "Woah"
     await ctx.channel.send(response)
-
-
-@bot.command(name="pokemon", help="Returns a random gen 1 pokemon")
-async def pokemon(ctx):
-    number = random.randint(1, 151)
-    url = f"https://pokeapi.co/api/v2/pokemon/{number}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            pokemon = await resp.json()
-            await ctx.channel.send(pokemon['name'])
 
 
 @bot.command(name="trade")
@@ -118,6 +95,50 @@ def currency_handler(arg: str) -> (bool, str):
         return False, arg
 
 
+def readable_listings(listings: [{}]) -> [str]:
+    listings.sort(key=lambda x:x["conversion_rate"])
+    f = lambda x: x["conversion_rate"]
+    output = []
+    for key, group in groupby(listings, f):
+        stack = list(group)
+        total_stock = 0
+        max_stock = 0
+        min_stock = 0
+        oldest_list = ""
+        newest_list = ""
+        sell = stack[0]["sell"]
+        buy = stack[0]["buy"]
+        for listing in stack:
+            total_stock += listing["stock"]
+            if min_stock == 0:
+                min_stock = listing["stock"]
+            if listing["stock"] < min_stock:
+                min_stock = listing["stock"]
+            if listing["stock"] > max_stock:
+                max_stock = listing["stock"]
+
+            if oldest_list == "":
+                oldest_list = listing["created_at"]
+                newest_list = listing["created_at"]
+            if listing["created_at"] < oldest_list:
+                oldest_list = listing["created_at"]
+            if listing["created_at"] > newest_list:
+                newest_list = listing["created_at"]
+
+        full_string = f"Conversion rate: 1 {sell} : {key} {buy}, or approx. {1 / key :.2f} {sell} : 1 {buy}\n" \
+                      f"Total stock: {total_stock}, min listing: {min_stock}, max listing: {max_stock}\n" \
+                      f"Oldest listing: {oldest_list}, Newest listing {newest_list}, Num listings {len(stack)}"
+        half_string = f"Conversion rate: 1 {sell} : {key} {buy}, or approx. {1 / key :.2f} {sell} : 1 {buy}\n" \
+                      f"Total stock: {total_stock}, max listing: {max_stock}, num sellers {len(stack)}" \
+
+        output.append((key,half_string))
+        # print(f"Conversion rate: 1 {sell} : {key} {buy}, or approx. {1/key :.1f} {sell} : 1 {buy}")
+        # print(f"Total stock: {total_stock}, min listing: {min_stock}, max listing: {max_stock}")
+        # print(f"Oldest listing: {oldest_list}, Newest listing {newest_list}")
+
+    return [x[1] for x in sorted(output)]
+
+
 @bot.command(name="query", help="Query a currency exchange rate.  Command can be used in the following forms:\n1."
                                 "'!query {currency}' to see generic listings of the currency using the default "
                                 "listing limit\n"
@@ -128,6 +149,7 @@ def currency_handler(arg: str) -> (bool, str):
                                 "4. '!query {currency} {currency} {limit}' to see listings of the first currency"
                                 "to be purchased with the second currency with the number of listings limited by limit")
 async def query(ctx, *args):
+    start = datetime.now()
     if len(args) == 0:
         await ctx.channel.send("Must specify a currency to query from " + str(list(CURRENCY_DICT.keys())))
         return
@@ -172,7 +194,7 @@ async def query(ctx, *args):
 
 
     print(query)
-
+    listings = []
     url = "http://trade.maximumstock.net/trade"
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=query) as resp:
@@ -182,9 +204,15 @@ async def query(ctx, *args):
                 del i["item_id"]
                 del i["stash_id"]
                 del i["seller_account"]
-                print(i)
+                listings.append(i)
+                #print(i)
 
-            await ctx.channel.send("look at terminal")
+            writer = open("temp.txt", "w")
+            writer.write("\n".join(readable_listings(listings)))
+            writer.close()
+            await ctx.channel.send(content=f"Time taken to complete: {datetime.now() - start}",
+                                   file=discord.File("temp.txt"))
+            os.remove("temp.txt")
 
 
 @bot.command(name="currency", help="Prints out a list of searchable currencies")
