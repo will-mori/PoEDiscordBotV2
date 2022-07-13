@@ -24,6 +24,7 @@ CURRENCY_DICT = {"c": "Chaos Orb", "ex": "Exalted Orb", "woke": "Awakener's Orb"
                  "alch": "Orb of Alchemy", "vaal": "Vaal Orb", "mirror": "Mirror of Kalandra" }
 
 CURRENCY_STR = ", ".join(CURRENCY_DICT.keys())
+URL = "http://trade.maximumstock.net/trade"
 
 bot = commands.Bot(command_prefix='!')
 
@@ -50,9 +51,8 @@ async def trade(ctx):
         "buy": "Chaos Orb",
         "limit": 5
     }
-    url = "http://trade.maximumstock.net/trade"
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=query) as resp:
+        async with session.post(URL, json=query) as resp:
             print(resp)
             output = await resp.json(content_type="application/json")
             for i in output["offers"]:
@@ -125,10 +125,10 @@ def readable_listings(listings: [{}]) -> [str]:
             if listing["created_at"] > newest_list:
                 newest_list = listing["created_at"]
 
-        full_string = f"Conversion rate: 1 {sell} : {key} {buy}, or approx. {1 / key :.2f} {sell} : 1 {buy}\n" \
+        full_string = f"Exchange rate: 1 {sell} : {key} {buy}, or approx. {1 / key :.2f} {sell} : 1 {buy}\n" \
                       f"Total stock: {total_stock}, min listing: {min_stock}, max listing: {max_stock}\n" \
                       f"Oldest listing: {oldest_list}, Newest listing {newest_list}, Num listings {len(stack)}"
-        half_string = f"Conversion rate: 1 {sell} : {key} {buy}, or approx. {1 / key :.2f} {sell} : 1 {buy}\n" \
+        half_string = f"Exchange rate: 1 {sell} : {key} {buy}, or approx. {1 / key :.2f} {sell} : 1 {buy}\n" \
                       f"Total stock: {total_stock}, max listing: {max_stock}, num sellers {len(stack)}" \
 
         output.append((key,half_string))
@@ -137,6 +137,12 @@ def readable_listings(listings: [{}]) -> [str]:
         # print(f"Oldest listing: {oldest_list}, Newest listing {newest_list}")
 
     return [x[1] for x in sorted(output)]
+
+
+async def write_to_file(filename:str, content:str) -> None:
+    writer = open(f"{filename}.txt", "w")
+    writer.write(content)
+    writer.close()
 
 
 @bot.command(name="query", help="Query a currency exchange rate.  Command can be used in the following forms:\n1."
@@ -160,7 +166,7 @@ async def query(ctx, *args):
                                f"  Use !currency to see the full currency list")
         return
 
-    query = {"sell": sell}
+    http_query = {"sell": sell}
 
     if len(args) == 2:
         valid_buy, buy = currency_handler(args[1])
@@ -172,9 +178,9 @@ async def query(ctx, *args):
                                        f" the full currency list.")
                 return
             else:
-                query["limit"] = limit
+                http_query["limit"] = limit
         else:
-            query["buy"] = buy
+            http_query["buy"] = buy
 
     elif len(args) == 3:
         valid_buy, buy = currency_handler(args[1])
@@ -185,19 +191,17 @@ async def query(ctx, *args):
         if valid_limit is False:
             await ctx.channel.send(f"Invalid limit {args[2]}, enter an integer from 1 to 200, integers over 200 will"
                                    f"be truncated to 200")
-        query["buy"] = buy
-        query["limit"] = limit
+        http_query["buy"] = buy
+        http_query["limit"] = limit
 
     elif len(args) > 3:
         await ctx.channel.send(f"Too many arguments, args has len {len(args)}")
         return
 
-
-    print(query)
+    print(http_query)
     listings = []
-    url = "http://trade.maximumstock.net/trade"
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=query) as resp:
+        async with session.post(URL, json=http_query) as resp:
             print(resp)
             output = await resp.json(content_type="application/json")
             for i in output["offers"]:
@@ -207,12 +211,12 @@ async def query(ctx, *args):
                 listings.append(i)
                 #print(i)
 
-            writer = open("temp.txt", "w")
-            writer.write("\n".join(readable_listings(listings)))
-            writer.close()
+            filename = ctx.channel.last_message_id
+            content = "\n".join(readable_listings(listings))
+            await write_to_file(filename, content )
             await ctx.channel.send(content=f"Time taken to complete: {datetime.now() - start}",
-                                   file=discord.File("temp.txt"))
-            os.remove("temp.txt")
+                                   file=discord.File(f"{filename}.txt"))
+            os.remove(f"{filename}.txt")
 
 
 @bot.command(name="currency", help="Prints out a list of searchable currencies")
@@ -245,11 +249,11 @@ async def log_currency(ctx):
             "limit": 200
         }
     ]
-    url = "http://trade.maximumstock.net/trade"
+
     log = []
     async with aiohttp.ClientSession() as session:
         for i in queries:
-            async with session.post(url, json=i) as resp:
+            async with session.post(URL, json=i) as resp:
                 output = await resp.json(content_type="application/json")
                 for listing in output["offers"]:
                     del listing["item_id"]
@@ -267,13 +271,18 @@ async def log_currency(ctx):
     await ctx.channel.send("Finished in "+str(datetime.now()-start))
 
 
-@bot.command(name="file")
-async def ftest(ctx):
-    file_name = str(date.today())
-    time_now = str(datetime.now().replace(microsecond=0).isoformat())
-    file = open(file_name, "x")
-    file.write("hello")
-
+@bot.command(name="down")
+async def down(ctx):
+    await ctx.channel.send("Function being built")
+    return
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.get("http://trade.maximumsotck.net/healthcheck") as resp:
+            print(resp)
+            if resp.status == 200:
+                await ctx.channel.send("Endpoint is up")
+            else:
+                await ctx.channel.send("Endpoint is unavailable")
 
 @bot.event
 async def on_error(event, *args, **kwargs):
