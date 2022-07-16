@@ -9,19 +9,12 @@ import asyncio
 import random
 from datetime import date, datetime, timezone
 from itertools import groupby, chain
-
+from global_vars import CURRENCY_DICT
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 CURRENCY = ["Chaos Orb", "Exalted Orb", "Divine Orb", "Awakener's Orb","Elevated Sextant","Ancient Orb",
             "Orb of Annulment", "Stacked Deck", "Awakened Sextant", "Mirror of Kalandra"]
-CURRENCY_DICT = {"c": "Chaos Orb", "ex": "Exalted Orb", "woke": "Awakener's Orb", "esex": "Elevated Sextant",
-                 "anc": "Ancient Orb", "annul":"Orb of Annulment", "deck": "Stacked Deck", "asex": "Awakened Sextant",
-                 "od": "Orb of Dominance", "oc": "Orb of Conflict", "ec": "Eldritch Chaos Orb",
-                 "eex": "Eldritch Exalted Orb", "eoa": "Eldritch Orb of Annulment", "do": "Divine Orb",
-                 "unmake": "Orb of Unmaking", "fuse": "Orb of Fusing", "tcat": "Tempering Catalyst",
-                 "fcat": "Fertile Catalyst", "gcp": "Gemcutter's Prism", "alt": "Orb of Alteration",
-                 "alch": "Orb of Alchemy", "vaal": "Vaal Orb", "mirror": "Mirror of Kalandra" }
 
 CURRENCY_STR = ", ".join(CURRENCY_DICT.keys())
 URL = "http://trade.maximumstock.net/trade"
@@ -64,7 +57,7 @@ async def trade(ctx):
             await ctx.channel.send("look at terminal")
 
 
-def limit_handler(arg: str) -> (bool, int):
+def limit_handler(arg: str) -> tuple[bool, int]:
     """
     Helper function to handle converting argument
     :param arg: String to be cast to an int and used as the query limit
@@ -82,7 +75,7 @@ def limit_handler(arg: str) -> (bool, int):
         return False, 0
 
 
-def currency_handler(arg: str) -> (bool, str):
+def currency_handler(arg: str) -> tuple[bool, str]:
     """
     Helper function to convert currency as passed by the user to a currency as used by the endpoint
     :param arg: String to be looked up in CURRENCY_DICT
@@ -95,7 +88,7 @@ def currency_handler(arg: str) -> (bool, str):
         return False, arg
 
 
-def readable_listings(listings: [{}]) -> [str]:
+def readable_listings(listings: list[dict]) -> list[str]:
     listings.sort(key=lambda x:x["conversion_rate"])
     f = lambda x: x["conversion_rate"]
     output = []
