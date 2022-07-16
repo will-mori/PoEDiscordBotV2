@@ -1,16 +1,17 @@
-# This is a sample Python script.
+#DB TestFile
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from site import USER_BASE
+import mysql.connector
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+HOST = os.getenv("MYSQL_HOST")
+USER = os.getenv("MYSQL_USER")
+DB = os.getenv("MYSQL_DB")
+PASSWORD = os.getenv("MYSQL_PASSWORD")
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+conn = mysql.connector.connect(host=HOST,database=USER,user=DB,password=PASSWORD)
+print("Connected")
 
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
