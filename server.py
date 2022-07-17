@@ -9,7 +9,7 @@ import asyncio
 import random
 from datetime import date, datetime, timezone
 from itertools import groupby, chain
-from global_vars import CURRENCY_DICT
+from global_vars import CURRENCY_DICT, URL
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -17,7 +17,6 @@ CURRENCY = ["Chaos Orb", "Exalted Orb", "Divine Orb", "Awakener's Orb","Elevated
             "Orb of Annulment", "Stacked Deck", "Awakened Sextant", "Mirror of Kalandra"]
 
 CURRENCY_STR = ", ".join(CURRENCY_DICT.keys())
-URL = "http://trade.maximumstock.net/trade"
 
 bot = commands.Bot(command_prefix='!')
 
@@ -253,6 +252,11 @@ async def log_currency(ctx):
                     del listing["stash_id"]
                     del listing["seller_account"]
                     log.append(listing)
+
+
+    # TODO Add MYSQL connection
+
+
 
     file_name = str(date.today())
     file_time = str(datetime.now().isoformat())

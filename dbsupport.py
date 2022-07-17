@@ -1,6 +1,5 @@
 #DB TestFile
 
-from site import USER_BASE
 import mysql.connector
 from dotenv import load_dotenv
 import os
@@ -63,4 +62,5 @@ def dbtableprint():
 if __name__ == "__main__":
     print("Testing connection to dotenv db")
     conn = dblogin()
+    print("Connection made")
     conn.close()

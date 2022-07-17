@@ -10,6 +10,10 @@ CURRENCY_DICT = {"c": "Chaos Orb", "ex": "Exalted Orb", "woke": "Awakener's Orb"
                 "fuse": "Orb of Fusing", "tcat": "Tempering Catalyst", "fcat": "Fertile Catalyst",
                 "gcp": "Gemcutter's Prism", "alt": "Orb of Alteration", "alch": "Orb of Alchemy",
                 "vaal": "Vaal Orb", "mirror": "Mirror of Kalandra" }
+URL = "http://trade.maximumstock.net/trade"
+
+
+
 
 if __name__ == "__main__":
     print("""This module just stores 'immutable' global values.  These could technically be put  

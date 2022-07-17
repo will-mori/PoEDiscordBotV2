@@ -5,8 +5,6 @@ import mysql.connector
 from global_vars import CURRENCY_DICT
 
 
-
-
 if __name__ == "__main__":
     print("Starting DB setup")
     conn = dblogin()
