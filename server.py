@@ -12,6 +12,7 @@ from itertools import groupby, chain
 from global_vars import CURRENCY_DICT, URL
 
 load_dotenv()
+DB_LOG = False
 TOKEN = os.getenv("DISCORD_TOKEN")
 CURRENCY = ["Chaos Orb", "Exalted Orb", "Divine Orb", "Awakener's Orb","Elevated Sextant","Ancient Orb",
             "Orb of Annulment", "Stacked Deck", "Awakened Sextant", "Mirror of Kalandra"]
@@ -253,8 +254,11 @@ async def log_currency(ctx):
                     del listing["seller_account"]
                     log.append(listing)
 
+    if DB_LOG:
+        # TODO Write this info to the database
+        pass
 
-    # TODO Add MYSQL connection
+
 
 
 
