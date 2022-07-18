@@ -8,14 +8,15 @@ if __name__ == "__main__":
     conn = dblogin()
     dbcursor = conn.cursor()
 
-    dbcursor.execute("SELECT * FROM currency")
-    results = dbcursor.fetchall()
-    for i in results:
-        print(i)
+    #dbcursor.execute("SELECT * FROM currency")
+    #results = dbcursor.fetchall()
+    #for i in results:
+    #    print(i)
 
     dbcursor.execute("SELECT COUNT(DISTINCT L.stash_id) FROM listings L")
     results = dbcursor.fetchall()
     print("Number of unique stashes pulled over data gathering period")
+    print("-"*20)
     for i in results:
         print(i)
 
@@ -24,6 +25,7 @@ if __name__ == "__main__":
         COUNT(DISTINCT L.stash_id) as stashes FROM listings L GROUP BY L.sell) S WHERE C.id = S.sell;")
     results = dbcursor.fetchall()
     print("Number of Unique Stashes Listing Currencies")
+    print("-"*20)
     for i in results:
         print(i)
     
@@ -31,6 +33,7 @@ if __name__ == "__main__":
          L GROUP BY L.stash_id) S ORDER BY S.items DESC LIMIT 10;")
     results = dbcursor.fetchall()
     print("Stashes selling the most types of currencies")
+    print("-"*20)
     for i in results:
         print(i)
 
@@ -52,9 +55,31 @@ if __name__ == "__main__":
     
     results = dbcursor.fetchall()
     print("Avg Conversion rate")
-    print("Time | Conversion Rate")
+    print("-"*20)
     for i in results:
         print(str(i[0]), i[1], i[2])
+
+    dbcursor.execute("""
+        SELECT queried_at, conversion_rate, COUNT(*) as cnt
+        FROM listings L, currency C, currency C2 
+        WHERE L.sell = C.id AND C.name = 'Exalted Orb' AND 
+        L.sell AND L.buy = C2.id AND C2.name = 'Chaos Orb'
+        GROUP BY queried_at, conversion_rate
+        HAVING cnt > 10
+        ORDER BY queried_at, cnt DESC
+    """)
+
+    results = dbcursor.fetchall()
+    print("Numerous listings at rates")
+    print("-"*20)    
+    last_time = None
+    for i in results:
+        if i[0] != last_time:
+            print("-"*20)
+            last_time = i[0]
+        print(str(i[0]), i[1], i[2])
+    print("-"*20)
+
 
     dbcursor.execute("""
         WITH t1 AS (SELECT L.stash_id, L.stock as stock, MIN(L.queried_at) as time
@@ -71,7 +96,11 @@ if __name__ == "__main__":
 
     results = dbcursor.fetchall()
     print("Incoming Stock")
+    print("-"*20)
     for i in results:
-        print(i)
+        print(int(i[0]))
+
+    # TODO QUERY
+    #   MAKE TIME SERIES DATA FOR rates
 
     conn.close()
